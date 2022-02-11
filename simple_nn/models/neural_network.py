@@ -7,13 +7,13 @@ import shutil
 from simple_nn.models import weight_initializers
 
 
-class FCNDict(torch.nn.Module):
+class FCNDict(torch.nn.Module): # parser object for NN later
     def __init__(self, nets):
         super(FCNDict, self).__init__()
         self.nets = torch.nn.ModuleDict(nets)
-        self.keys = self.nets.keys()
+        self.keys = self.nets.keys() # linear component to nn
 
-    def forward(self, x):
+    def forward(self, x):  
         assert [item for item in self.nets.keys()].sort() == [item for item in x.keys()].sort()
         res = {}
         for key in x:
@@ -112,7 +112,7 @@ class FCN(torch.nn.Module):
         self.lin = torch.nn.Sequential()
 
         dim_in = dim_input
-        for i, hn in enumerate(dim_hidden):
+        for i, hn in enumerate(dim_hidden): # replace this with kalman and profit?
             self.lin.add_module(f'lin_{i}', torch.nn.Linear(dim_in, hn))
             #if batch_norm:
             #    seq.add_module(torch.nn.BatchNorm1d(hn))
@@ -163,7 +163,7 @@ def _initialize_model_and_weights(inputs, logfile, device):
 
         weights_initialize_log = weight_initializers._initialize_weights(inputs, logfile, model[element])
 
-    model = FCNDict(model) #Make full model with elementized dictionary model
+    model = FCNDict(model) #Make full model with elementized dictionary model, nn  obj only creates model in pytorch
     model.to(device=device)
 
     return model
