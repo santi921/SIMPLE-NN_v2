@@ -57,6 +57,8 @@ def preprocess(inputs, logfile, comm):
     if inputs['preprocessing']['calc_atomic_weights']:
         if scale is None:
             scale = torch.load('scale_factor')
+            print(inputs["preprocessing"]['calc_atomic_weights'])
+            print(scale)
         _calculate_gdf(inputs, logfile, train_feature_list, train_idx_list, train_dir_list, scale, comm)
 
     if comm.rank == 0:
@@ -95,16 +97,31 @@ def _calculate_scale(inputs, logfile, feature_list, comm):
     calculate_scale_factor = util_scale.get_scale_function(scale_type=scale_type)
 
     for elem in atom_types:
+        print(elem)
         inp_size = feature_list[elem].shape[1]
         scale[elem] = np.zeros([2, inp_size])
 
         # if no feature list, scaling to 1
         if len(feature_list[elem]) <= 0:
-            scale[elem][1,:] = 1.
+            if(elem == "Pt"):
+                print("double scale test on Pt")
+                scale[elem][1,:] = int(1000)
+            else:
+                scale[elem][1,:] = int(1)
+            
         else:
+            if(elem == "Pt"):
+                print("double scale test on Pt")
+                prefactor = int(1000)
+            else:
+                prefactor = int(1)
+            
             scale[elem][0], scale[elem][1] = calculate_scale_factor(inputs, feature_list, elem, comm)
-            scale[elem][1, scale[elem][1,:] < 1e-15] = 1.
-
+            scale[elem][0] *= prefactor
+            scale[elem][1] *= prefactor
+            scale[elem][1, scale[elem][1,:] < 1e-15] = prefactor * 1.
+            
+            # mainly a t/f array of scaling conditionals
             is_scaled = np.array([True] * inp_size)
             is_scaled[scale[elem][1,:] < 1e-15] = False
 

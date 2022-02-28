@@ -2,7 +2,13 @@ import torch
 from ase import units
 
 #Calculate E, F, S loss
+
+############## NOTE THAT CRITERION IS MSE
+
 def calculate_batch_loss(inputs, item, model, criterion, device, non_block, epoch_result, weighted, dtype, use_force, use_stress, atomic_e):
+    
+    # whats the item value
+
     n_batch = item['E'].size(0)
     weight = item['struct_weight'].to(device=device) if weighted else torch.ones(n_batch).to(device=device)
     calc_results = dict()
@@ -14,8 +20,8 @@ def calculate_batch_loss(inputs, item, model, criterion, device, non_block, epoc
     calc_results['E'] = E_
 
     if not atomic_e: # atomic_e training does not calculate F, S
-        dEdG = calculate_derivative(inputs, inputs['atom_types'], x, E_)
-
+        dEdG = calculate_derivative(inputs, inputs['atom_types'], x, E_) # used to compute the force and stress values
+        
         if use_force:
             F_ = calculate_F(inputs['atom_types'], x, dEdG, item, device, non_block)
             F = item['F'].type(dtype).to(device=device, non_blocking=non_block)
@@ -150,10 +156,11 @@ def get_f_loss(loss_type, F_, F, criterion, progress_dict, n_batch, item, weight
     if loss_type == 1:
         f_loss = criterion(F_, F)
     else:
-        # check the scale value: current = norm(force difference)
+        # check the scale value: current = norm(force difference) # this keeps a track of how forces are evolving nteween two iteraction steps 
         # Force different scaling : larger force difference get higher weight !!
         force_diffscale = torch.sqrt(torch.norm(F_ - F, dim=1, keepdim=True).detach())
         f_loss = criterion(force_diffscale * F_, force_diffscale * F)
+    
     
     #GDF : using force weight scheme by G vector
     if gdf:
@@ -161,7 +168,7 @@ def get_f_loss(loss_type, F_, F, criterion, progress_dict, n_batch, item, weight
         for n in range(n_batch): #Make structure_weighted force
             tmp_idx = item['tot_num'][n].item()
             label = item['struct_type'][n]
-            partial_f_loss = f_loss[batch_idx:batch_idx + tmp_idx]
+            partial_f_loss = f_loss[batch_idx:batch_idx + tmp_idx] # only gets few atoms to pull out partial losos 
             partial_gdf = item['atomic_weights'][batch_idx:batch_idx + tmp_idx]
             partial_f_mean = torch.mean(partial_f_loss)
             progress_dict['f_err'][label].update(partial_f_mean.detach().item() * 3, tmp_idx)

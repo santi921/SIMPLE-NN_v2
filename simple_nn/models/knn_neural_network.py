@@ -130,8 +130,6 @@ class FCN(torch.nn.Module):
                 self.lin.add_module(f'relu_{i}', torch.nn.ReLU())
             elif acti_func == 'selu':
                 self.lin.add_module(f'tanh_{i}', torch.nn.SELU())
-            elif acti_func == 'swish':
-                self.lin.add_module(f'swish_{i}', swish())
             else:
                 assert False
 
@@ -228,19 +226,20 @@ class KNN:
         self.neuron = neuron
         '''
 
-        #self.sig = lambda V: np.clip(V, 0, np.inf)
-        #self.dsig = lambda sigV: np.float64(sigV > 0)
+        self.sig = lambda V: np.clip(V, 0, np.inf)
+        self.dsig = lambda sigV: np.float64(sigV > 0)
 
         # Initial synapse weight matrices
+        # this only allows for a random initialization of the weight parameters 
         sprW = np.float64(sprW)
         self.W = [sprW*(2*np.random.sample((nl, nu+1))-1),
                   sprW*(2*np.random.sample((ny, nl+1))-1)]
         self.nW = sum(map(np.size, self.W))
         self.P = None
 
+
         # Function for pushing signals through a synapse with bias
         self._affine_dot = lambda W, V: np.dot(np.atleast_1d(V), W[:, :-1].T) + W[:, -1]
-
         # Function for computing the RMS error of the current fit to some data set
         self.compute_rms = lambda U, Y: np.sqrt(np.mean(np.square(Y - self.feedforward(U))))
 
@@ -257,7 +256,7 @@ class KNN:
             pickle.dump((self.W, self.neuron, self.P), output, pickle.HIGHEST_PROTOCOL)
     '''
 
-    def feedforward(self, U, get_l=False):
+    def feedforward(self, U, get_l=False): # boring feed forward 
         """
         Feeds forward an (m by nu) array of inputs U through the NN.
         Returns the associated (m by ny) output matrix, and optionally
@@ -271,7 +270,7 @@ class KNN:
         return h
 
 
-    def classify(self, U, high, low=0):
+    def classify(self, U, high, low=0):# output layer to nn classifcation
         """
         Feeds forward an (m by nu) array of inputs U through the NN.
         For each associated output, the closest integer between high

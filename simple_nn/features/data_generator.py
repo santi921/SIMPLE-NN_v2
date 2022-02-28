@@ -109,6 +109,7 @@ def _get_tag_and_weight(text):
         try:
             tag = splited_text[0].strip()
             weight = float(splited_text[1].strip())
+            print(weight)
         except ValueError:
             tag = text.strip()
             weight = 1.0
